@@ -3,7 +3,7 @@ var express = require('express');
 var app = express();
 var http = require('http').createServer(app);
 var options = {
-    key: fs.readFileSync('pem/rsa_private_key.pem'),
+    key: fs.readFileSync('pem/rsa_private_key.key'),
     cert: fs.readFileSync('pem/cacert.pem')
 };
 
