@@ -4,7 +4,7 @@ var app = express();
 var http = require('http').createServer(app);
 var options = {
     key: fs.readFileSync('pem/rsa_private_key.key'),
-    cert: fs.readFileSync('pem/cacert.pem')
+    cert: fs.readFileSync('pem/cacert.crt')
 };
 
 var https = require('https').createServer(options, (req, res) => {
