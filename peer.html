@@ -128,6 +128,7 @@
                 }
 
                 this.pc2.ontrack = e => {
+                    console.log(e);
                     remoteVideo.srcObject = e.streams[0];
                     remoteVideo.play();
                 }
@@ -138,7 +139,8 @@
 
                 let offerOptions = {
                     offerToRecieveAudio: 1,
-                    offerToRecieveVideo: 1
+                    offerToRecieveVideo: 1,
+                    iceRestart: true, // 重新收集候选者
                 }
 
                 this.pc1.createOffer(offerOptions)

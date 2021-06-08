@@ -59,3 +59,28 @@ SDP(Session Description Protocol) 一种信息的描述标准，主要是用于�
     -安全描述
     -服务质量
 
+RTP
+RTCRtpReceiver
+    getReceivers
+    attributes:
+        MedaiStreamTrack
+        RTCDtlsTransport
+    methods:
+        getParameters:
+        getSynchronizationSources
+        getContribtingSources
+        getStats
+        getCapabilities
+
+
+RTCRtpSender
+    getSenders
+    attributes:
+        MedaiStreamTrack
+        RTCDtlsTransport
+    methods:
+        setParameters
+        getParameters
+        replaceTrack
+        getStats
+        getCapabilities

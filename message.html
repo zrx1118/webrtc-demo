@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head>
+    <title>Socket.IO chat</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body { font: 13px Helvetica, Arial; }
+      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
+      form input { border: 0; padding: 10px; width: 90%; margin-right: 0.5%; }
+      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
+      #messages { list-style-type: none; margin: 0; padding: 0; }
+      #messages li { padding: 5px 10px; }
+      #messages li:nth-child(odd) { background: #eee; }
+    </style>
+  </head>
+  <body>
+    <ul id="messages"></ul>
+    <form action="#">
+      <input id="m" autocomplete="off" /><button type="submit">Send</button>
+    </form>
+    <script src="//cdn.bootcdn.net/ajax/libs/jquery/3.4.1/jquery.js"></script>
+    <script src="//cdn.bootcdn.net/ajax/libs/socket.io/3.0.4/socket.io.js"></script>
+
+    <script>
+        //当页面准备完成时, $是jQuery的一个函数
+        $(document).ready(function(){
+            //令 socket 等于 socket.io 对象，io() 中的参数为socket.io服务器地址，在这里和web服务器相同。
+            var socket = io('//');
+            //在控制台输出hello字符串 console.log 和print类似。
+            console.log('hello');
+            //监听connect事件，当socket连接建立时，会触发后面第二个参数中的匿名函数内容
+            socket.on('connect', () => {
+                //输出内容 其中 socket.id 是当前socket连接的唯一ID
+                console.log('connect ' + socket.id);
+            });
+            $('form').submit(function(e) {
+                e.preventDefault();
+                socket.emit('chat message', $('#m').val());
+                $('#m').val('');
+                return false;
+            })
+
+            socket.on('chat message', (msg) => {
+                console.log(msg);
+                $('#messages').append(`<li>${msg}</li>`)
+            })
+        });
+    </script>
+  </body>
+</html>

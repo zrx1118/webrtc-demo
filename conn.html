@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Connect</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="//webrtc.github.io/adapter/adapter.js"></script>
+    <script src="//cdn.bootcdn.net/ajax/libs/socket.io/3.0.4/socket.io.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div>
+            <el-button type="primary" @click="connectServer" :disabled="isConnect">Connect sig Server</el-button>
+            <el-button type="primary" @click="leave" :disabled="!isConnect">Leave</el-button>
+        </div>
+        <el-row>
+            <el-col :span="24">
+                <h3>localVideo:</h3>
+                <div>Local User: {{userId}}</div>
+                <video id="localVideo" controls autoplay></video>
+            </el-col>
+            <el-col :span="24">
+                <h3>remoteVideo:</h3>
+                <ul>
+                    <li v-for="(user, i) in userList" :key="i">
+                        {{user.sender}}
+                        <el-button @click="call(user.sender, true)">呼叫</el-button>
+                        <video :id="user.sender+'remoteVideo'" controls autoplay autoplay></video>
+                    </li>
+                </ul>
+            </el-col>
+        </el-row>
+
+        <el-dialog
+            title="请求通话"
+            :visible.sync="dialogVisible"
+            width="30%"
+            :before-close="handleClose">
+            <span>{{remoter}}</span>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="dialogVisible = false">取 消</el-button>
+                <el-button type="primary" @click="dialogVisible = false">确 定</el-button>
+            </span>
+        </el-dialog>
+    </div>
+</body>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                option: {
+                    video: true,
+                    audio: false,
+                },
+                localMediaStream: null,
+                roomId: '111111',
+                socket: null,
+                state: 'init',
+                isConnect: false,
+                pc: {},
+                pcConfig: {
+                    iceServers: [{
+                        urls: "stun:ss-turn1.xirsys.com"
+                    }, {
+                        username: "CEqIDkX5f51sbm7-pXxJVXePoMk_WB7w2J5eu0Bd00YpiONHlLHrwSb7hRMDDrqGAAAAAF_OT9V0dWR1d2Vi",
+                        credential: "446118be-38a4-11eb-9ece-0242ac140004",
+                        urls: [ "turn:ss-turn1.xirsys.com:80?transport=udp", "turn:ss-turn1.xirsys.com:3478?transport=udp"]
+                    }]
+                    // 'iceServers': [{
+                    //     'urls': 'turn:116.62.152.5:3478',
+                    //     'credential': '123456',
+                    //     'username': 'admin'
+                    // }]
+                },
+                userId: null,
+                userList: [],
+                dialogVisible: false,
+                remoter: null
+            }
+        },
+        mounted() {
+            // this.$nextTick(() => {
+            //     setInterval(this.checkHeart, 50000);
+            // })
+            this.conn();
+        },
+        methods: {
+            connectServer() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    console.log('getUserMedia is not supported');
+                    return
+                }
+                console.log(navigator);
+                navigator.mediaDevices.getUserMedia(this.option)
+                    .then(this.getMedaiStream)
+                    .catch((e) => console.log("打开本地音视频设备失败", e));
+            },
+                
+            getMedaiStream(stream) {
+                this.isConnect = true;
+                console.log(stream);
+                this.localMediaStream = stream;
+                let localVideo = document.getElementById("localVideo");
+                localVideo.srcObject = this.localMediaStream;
+                localVideo.play();
+                console.log("打开本地音视频设备成功")
+            },
+
+            call(parterName, createOffer) {
+                this.pc[parterName] = new RTCPeerConnection(this.pcConfig)
+                if (this.localMediaStream) {
+                    console.log('addTrack', parterName, this.localMediaStream);
+
+                    this.localMediaStream.getTracks().forEach(track => {
+                        this.pc[parterName].addTrack(track, this.localMediaStream)
+                    })
+                } else {
+                    this.connectServer();
+                }
+
+                if (createOffer) {
+                    this.pc[parterName].onnegotiationneeded= () => {
+                        this.pc[parterName].createOffer().then(offer => {
+                            return this.pc[parterName].setLocalDescription(offer)
+                        }).then(() => {
+                            console.log('createOffer sdp pc', this.pc, this.socket.id);
+
+                            this.socket.emit('sdp', {
+                                type: 'video-offer',
+                                description: this.pc[parterName].localDescription,
+                                to: parterName,
+                                sender: this.socket.id
+                            })
+                        })
+                    }
+                }
+
+                this.pc[parterName].onicecandidate = ({ candidate }) => {
+                    console.log('icecandidate', candidate);
+
+                    this.socket.emit('icecandidate', {
+                        candidate: candidate,
+                        to: parterName,
+                        sender: this.socket.id
+                    })
+                }
+
+                this.pc[parterName].ontrack = (e) => {
+                    let str = e.streams[0];
+                    let remote = document.getElementById(parterName + 'remoteVideo');
+                    console.log('parterName remote', this.pc, parterName, str);
+                    if (remote) {
+                        remote.srcObject = str;
+                        remote.play();
+                    }
+                }
+            },
+
+            conn() {
+
+                this.socket = io();
+    
+                this.socket.on('connect', () => {
+                    // this.connectServer();
+                    console.log('connect' + this.socket.id);
+
+                    this.userId = this.socket.id;
+                    this.pc[this.socket.id] = null;
+                    
+                    this.socket.emit('newuser', {
+                        sender: this.socket.id,
+                        msg: 'hello world'
+                    })
+                    
+                    this.socket.on('need', data => {
+                        console.log('need data', data);
+                        this.userList.push(data)
+                        this.socket.emit('ok', {receiver: data.sender, sender: this.socket.id })
+                    })
+
+                    this.socket.on('userdisconnect', id => {
+                        console.log('userdisconnect data', id);
+                        let idx = this.userList.findIndex(user => user.sender === id);
+                        this.userList.splice(idx, 1);
+                        // socket.emit('ok', {receiver: socket.id, })
+                    })
+
+                    this.socket.on('answerok', data => {
+                        console.log('answerok data', data);
+                        this.userList.push(data)
+                    })
+
+                    this.socket.on('sdp', data => {
+                        
+                        if (data.description.type == 'offer') {
+                            this.call(data.sender, false)
+                            this.pc[data.sender].setRemoteDescription(new RTCSessionDescription(data.description))
+                                .then(() => {
+                                    console.log('sdp offer', this.pc, data);
+
+                                    this.pc[data.sender].createAnswer().then(answer => {
+                                        return this.pc[data.sender].setLocalDescription(answer);
+                                    })
+                                    .then(() => {
+                                        this.socket.emit('sdp', {
+                                            type: 'video-answer',
+                                            description: this.pc[data.sender].localDescription,
+                                            to: data.sender,
+                                            sender: this.socket.id
+                                        })
+                                    })
+                                    .catch(e => console.error(e))
+                                })
+                        } else if (data.description.type == 'answer'){
+                            console.log('sdp answer', this.pc, data);
+
+                            this.pc[data.sender].setRemoteDescription(new RTCSessionDescription(data.description), function() {
+                                console.log('sdp answer setRemoteDescription success');
+                            })
+                        }
+                    })
+
+                    this.socket.on('icecandidate', data => {
+                        console.log('ice candidate', data.candidate);
+
+                        if (data.candidate) {
+                            this.pc[data.sender].addIceCandidate(new RTCIceCandidate(data.candidate)).catch(e => console.error(e))
+                        }
+                    })
+                    
+                })
+            },
+
+            leave() {
+                this.isConnect = false;
+            },
+
+            closeVideoCall(parterName) {
+
+                if (document.getElementById(parterName + 'remoteVideo')) {
+                    document.getElementById(parterName + 'remoteVideo').srcObject.getTracks().forEach(track => track.stop());
+                }
+
+                this.pc[parterName].ontrack = null;
+                this.pc[parterName].onremovetrack = null;
+                this.pc[parterName].onremovestream = null;
+                this.pc[parterName].onicecandidate = null;
+                this.pc[parterName].onnegotiationneeded = null;
+                this.pc[parterName].close = null;
+                this.pc[parterName] = null;
+            },
+            handleClose() {
+                this.dialogVisible = false;
+            }
+        }
+    })
+</script>
+</html>

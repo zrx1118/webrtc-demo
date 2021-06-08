@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Room</title>
+    <link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">
+    <script src="//webrtc.github.io/adapter/adapter.js"></script>
+    <script src="//cdn.bootcdn.net/ajax/libs/socket.io/3.0.4/socket.io.js"></script>
+</head>
+<body>
+    <div id="app">
+        <div>
+            <el-button type="primary" @click="connectServer" :disabled="isConnect">Connect sig Server</el-button>
+            <el-button type="primary" @click="leave" :disabled="!isConnect">Leave</el-button>
+        </div>
+        <el-row>
+            <el-col :span="12">
+                <h3>localVideo:</h3>
+                <video id="localVideo" autoplay></video>
+            </el-col>
+            <el-col :span="12">
+                <h3>remoteVideo:</h3>
+                <video id="remoteVideo" autoplay></video>
+            </el-col>
+        </el-row>
+    </div>
+</body>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<!-- import JavaScript -->
+<script src="https://unpkg.com/element-ui/lib/index.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                option: {
+                    video: true,
+                    audio: true,
+                },
+                localMediaStream: null,
+                roomId: '111111',
+                socket: null,
+                state: 'init',
+                isConnect: false,
+                pc: null,
+                pcConfig: {
+                    'iceServers': [{
+                        'urls': 'turn:116.62.152.5:3478',
+                        'credential': '123456',
+                        'username': 'admin'
+                    }]
+                }
+            }
+        },
+        mounted() {
+            // this.$nextTick(() => {
+            //     setInterval(this.checkHeart, 50000);
+            // })
+        },
+        methods: {
+            connectServer() {
+                if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+                    console.log('getUserMedia is not supported');
+                    return
+                }
+
+                navigator.mediaDevices.getUserMedia(this.option)
+                    .then(this.getMedaiStream)
+                    .then(() => console.log("打开本地音视频设备成功"))
+                    .catch((e) => console.log("打开本地音视频设备失败", e));
+            },
+
+            getMedaiStream(stream) {
+                this.localMediaStream = stream;
+                let localVideo = document.getElementById("localVideo");
+                localVideo.srcObject = this.localMediaStream;
+                localVideo.play();
+                this.conn();
+            },
+
+            closeLocalMedia() {
+                if (this.localMediaStream && this.localMediaStream.getTracks()) {
+                    this.localMediaStream.getTracks().forEach(track => {
+                        track.stop();
+                    })
+                }
+                this.localMediaStream = null;
+            },
+
+            conn() {
+                this.socket = io.connect();
+
+                this.socket.on('joined', (roomId, id) => {
+                    console.log('receive joined message', roomId, id);
+                    this.isConnect = true;
+                    this.state = 'joined';
+                    
+                    this.createPeerConn();
+                    console.log('receive joined message:state=', this.state);
+                })
+
+                this.socket.on('otherjoin', (roomId, id) => {
+                    console.log('receive otherjoin message', roomId, id);
+                    
+                    if (this.state === 'joined_unbind') {
+                        this.createPeerConn();
+                    }
+                    this.state = 'joined_conn';
+                    
+                    // 媒体协商
+                    this.call()
+                    console.log('receive otherjoin message:state=', this.state);
+                })
+
+                this.socket.on('full', (roomId, id) => {
+                    console.log('receive full message', roomId, id);
+
+                    this.state = 'leaved';
+                    this.closePeerConn();
+                    this.isConnect = false;
+                    
+                    console.log('receive full message:state=', this.state);
+                    alert('the room is full')
+                })
+
+                this.socket.on('leaved', (roomId, id) => {
+                    console.log('receive leaved message', roomId, id);
+
+                    this.state = 'leaved';
+                    this.socket.disconnect();
+                    this.isConnect = false;
+                    
+                    console.log('receive leaved message:state=', this.state);
+                })
+
+                this.socket.on('bye', (roomId, id) => {
+                    console.log('receive bye message', roomId, id);
+                    
+                    this.state = 'joined_unbind';
+                    this.closePeerConn();
+                    
+                    console.log('receive bye message:state=', this.state);
+                })
+
+                this.socket.on('message', (roomId, data) => {
+                    
+                    // 媒体协商
+                    if (data) {
+                        switch(data.type) {
+                            case 'offer':
+                                console.log('receive offer message', roomId, data, this.pc);
+                                this.pc.setRemoteDescription(new RTCSessionDescription(data.sdp));
+                                this.pc.createAnswer()
+                                    .then(this.getAnswer)
+                                    .catch(e => {console.log('createAnswer failed', e);})
+                                break;
+                            case 'answer':
+                                console.log('receive answer message', roomId, data);
+                                this.pc.setRemoteDescription(new RTCSessionDescription(data))
+                                break;
+                            case 'candidate':
+                                let candidate = new RTCIceCandidate({
+                                    sdpMLineIndex: data.label,
+                                    candidate: data.candidate
+                                })
+
+                                this.pc.addIceCandidate(candidate);
+                                break;
+                            default:
+                                console.log('the message is hande Inviad');
+                                break;
+
+                        }
+                    }
+
+                })
+
+                this.socket.emit('join', '111111')
+
+                return
+            },
+
+            leave() {
+                if (this.socket) {
+                    this.socket.emit('leave', '111111')
+                }
+                // 释放资源
+                this.closePeerConn();
+                this.closeLocalMedia();
+
+                this.isConnect = false;
+            },
+
+            createPeerConn() {
+                console.log('create RTCPeerConnection');
+                if (!this.pc) {
+                    this.pc = new RTCPeerConnection(this.pcConfig);
+                    
+                    this.pc.onicecandidate = (e) => {
+                        if (!e.candidate) return
+                        console.log('find a new candidate', e.candidate);
+                        this.sendMessage(this.roomId, {
+                            type: 'candidate',
+                            label: e.candidate.sdpMLineIndex,
+                            id: e.candidate.sdpMid,
+                            candidate: e.candidate.candidate
+                        })
+                    }
+                    console.log(this.pc);
+                    this.pc.ontrack = (e) => {
+                        let remoteVideo = document.getElementById("remoteVideo");
+                        remoteVideo.srcObject = e.streams[0];
+                        remoteVideo.play();
+                    }
+                }
+                
+                if (this.localMediaStream) {
+                    this.localMediaStream.getTracks().forEach(track => {
+                        this.pc.addTrack(track)
+                    })
+                }
+            },
+
+            closePeerConn() {
+                console.log('Close RTCPeerConnection');
+                if (this.pc) {
+                    this.pc.close();
+
+                    this.pc = null;
+                }
+            },
+
+            call() {
+                if (this.state === 'joined_conn') {
+                    if (this.pc) {
+                        let options = {
+                            offerToRecieveAudio: 1,
+                            offerToRecieveVideo: 1,
+                            // iceRestart: true, // 重新收集候选者
+                        }
+                        this.pc.createOffer(options)
+                            .then(this.getOffer)
+                            .catch(e => {console.log('createOffer failed:', e)})
+                    }
+                }
+            },
+
+            getOffer(desc) {
+                console.log('offer', desc);
+                this.pc.setLocalDescription(desc);
+
+                this.sendMessage(this.roomId, desc);
+            },
+
+            sendMessage(roomId, data) {
+                console.log('send P2P message', roomId, data);
+
+                if (this.socket) {
+                    this.socket.emit('message', roomId, data)
+                }
+            },
+
+            getAnswer(desc) {
+                console.log('answer', desc);
+
+                this.pc.setLocalDescription(desc.sdp);
+                this.sendMessage(this.roomId, desc)
+            }
+        }
+    })
+</script>
+</html>

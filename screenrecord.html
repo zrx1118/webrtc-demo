@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Screen Record</title>
+    <script src="//webrtc.github.io/adapter/adapter.js"></script>
+    <script src="//cdn.bootcdn.net/ajax/libs/socket.io/3.0.4/socket.io.js"></script>
+    <style>
+        video {
+            width: 600px;
+            height: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">
+        <video autoplay controls ref="preview"></video>
+        <div>
+            <button :disabled="recording" @click="record">record</button>
+            <button :disabled="paused || !recording" @click="pause">pause</button>
+            <button :disabled="!paused || !recording" @click="resume">resume</button>
+            <button :disabled="!recording" @click="stop">stop</button>
+            <button :disabled="!currentData" @click="play">play</button>
+        </div>
+        <video controls ref="player"></video>
+    </div>
+</body>
+<script src="https://unpkg.com/vue/dist/vue.js"></script>
+<script>
+    new Vue({
+        el: '#app',
+        data() {
+            return {
+                audiostream: null,
+                videostream: null,
+                _recorder: null,
+                currentData: null,
+                recording: false,
+                paused: false
+            }
+        },
+        mounted() {
+            this._initMedia();
+        },
+        methods: {
+            async _initMedia() {
+                this.audiostream = await navigator.mediaDevices.getUserMedia({audio: true, video: false});
+                this.videostream = await navigator.mediaDevices.getDisplayMedia({audio: false, video: true});
+                this.videostream.getVideoTracks().forEach(value => this.audiostream.addTrack(value));
+                this.$refs.preview.srcObject = this.audiostream;
+                this._recorder = new MediaRecorder(this.audiostream, {mimeType: 'video/webm;codecs=h264'});
+                this._recorder.ondataavailable = this.record_dataAviailabHandler.bind(this);
+            },
+            record_dataAviailabHandler(e) {
+                this.currentData = e.data;
+            },
+            record() {
+                this.recording = true;
+                this._recorder.start();
+            },
+            pause() {
+                this.paused = true;
+                this._recorder.pause();
+            },
+            resume() {
+                this.paused = false;
+                this._recorder.resume();
+            },
+            stop() {
+                this.recording = false;
+                this._recorder.stop();
+            },
+            play() {
+                this.$refs.player.src = URL.createObjectURL(this.currentData);
+            }
+        }
+    })
+</script>
+</html>

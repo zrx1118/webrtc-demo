@@ -6,6 +6,7 @@
     <title>聊天室</title>
     <script src="/js/vue.js"></script>
     <link rel="stylesheet" href="/css/chalk.css">
+    <link rel="stylesheet" href="/css/chat.css">
     <script src="/js/element-ui.js"></script>
     <script src="/js/jquery.js"></script>
     <script src="//cdn.bootcdn.net/ajax/libs/socket.io/3.0.4/socket.io.js"></script>
@@ -26,9 +27,10 @@
         </el-form-item>
     </el-form>
 
-    <div>
-        <p v-for="(msg, idx) in message" :key="msg.id">{{msg.id}}: {{msg.data}}</p>
-    </div>
+    <el-row>
+        <el-col :span="24" v-for="(msg, idx) in otherMessage" :key="msg.id">{{msg.id}}: {{msg.data}}</el-col>
+        <el-col class="tr" :span="12" :offset="12" v-for="(msg, idx) in myMessage" :key="msg.id">{{msg.id}}: {{msg.data}}</el-col>
+    </el-row>
 
     <el-form :inline="true" ref="messageForm" :model="messageForm" label-width="100px">
         <el-form-item label="message" prop="content" :rules="[{ required: true, message: '请输入发送的内容', trigger: 'blur' }]">
@@ -85,7 +87,8 @@
                         'credential': '密码'
                     }]
                 },
-                message: [],
+                otherMessage: [],
+                myMessage: [],
             }
         },
         mounted() {
@@ -102,6 +105,10 @@
                     if (valid) {
                         this.socket = io.connect();
 
+                        this.socket.on('connected', id => {
+                            this.messageForm.userId = id;
+                        })
+
                         this.socket.on('joined', (room, id) => {
                             this.hasSubmit = true
                         })
@@ -110,8 +117,13 @@
                             this.hasSubmit = false
                         })
 
-                        this.socket.on('message', (id, data) => {
-                            this.message.push({id, data})
+                        this.socket.on('my-message', (id, data) => {
+                            this.myMessage.push({id, data})
+                            console.log('otherMessage:', this.otherMessage, 'myMessage:', this.myMessage);
+                        })
+                        this.socket.on('other-message', (id, data) => {
+                            this.otherMessage.push({id, data})
+                            console.log('otherMessage:', this.otherMessage, 'myMessage:', this.myMessage);
                         })
 
                         this.socket.emit('join', this.loginForm.roomId)
@@ -147,7 +159,7 @@
             send() {
                 this.$refs['messageForm'].validate((valid) => {
                     if (valid) {
-                        this.socket.emit('message', this.loginForm.userId, this.messageForm.content)
+                        this.socket.emit('message', this.messageForm.userId, this.messageForm.content)
 
                     } else {
                         console.log('error submit!!');
