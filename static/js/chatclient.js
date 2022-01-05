@@ -51,6 +51,7 @@ var targetUsername = null;      // To store username of other peer
 var myPeerConnection = null;    // RTCPeerConnection
 var transceiver = null;         // RTCRtpTransceiver
 var webcamStream = null;        // MediaStream from webcam
+var devices = [];               // device List
 
 // Output logging information to console.
 
@@ -218,7 +219,7 @@ function handleKey(evt) {
 // our camera and microphone and add that stream to the connection for
 // use in our video call. Then we configure event handlers to get
 // needed notifications on the call.
-
+// 1-1
 async function createPeerConnection() {
   log("Setting up a connection...");
 
@@ -243,16 +244,20 @@ async function createPeerConnection() {
   myPeerConnection.onsignalingstatechange = handleSignalingStateChangeEvent;
   myPeerConnection.onnegotiationneeded = handleNegotiationNeededEvent;
   myPeerConnection.ontrack = handleTrackEvent;
+
+  devices = await navigator.mediaDevices.enumerateDevices();
+  log(`devices-----${JSON.stringify(devices)}`)
+  showDevices(devices);
 }
 
 // Called by the WebRTC layer to let us know when it's time to
 // begin, resume, or restart ICE negotiation.
-
 async function handleNegotiationNeededEvent() {
   log("*** Negotiation needed");
-
+  
   try {
     log("---> Creating offer");
+    // 1-4
     const offer = await myPeerConnection.createOffer();
 
     // If the connection hasn't yet achieved the "stable" state,
@@ -266,12 +271,12 @@ async function handleNegotiationNeededEvent() {
 
     // Establish the offer as the local peer's current
     // description.
-
+    // 1-5
     log("---> Setting local description to the offer");
     await myPeerConnection.setLocalDescription(offer);
 
     // Send the offer to the remote peer.
-
+    // 1-6
     log("---> Sending the offer to the remote peer");
     sendToServer({
       name: myUsername,
@@ -510,7 +515,7 @@ async function invite(evt) {
 
     // Get access to the webcam stream and attach it to the
     // "preview" box (id "local_video").
-
+    // 1-2
     try {
       webcamStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
       document.getElementById("local_video").srcObject = webcamStream;
@@ -520,10 +525,11 @@ async function invite(evt) {
     }
 
     // Add the tracks from the stream to the RTCPeerConnection
-
+    // 1-3
     try {
       webcamStream.getTracks().forEach(
-        transceiver = track => myPeerConnection.addTransceiver(track, {streams: [webcamStream]})
+        track => myPeerConnection.addTrack(track, webcamStream)
+        // transceiver = track => myPeerConnection.addTransceiver(track, {streams: [webcamStream]})
       );
     } catch(err) {
       handleGetUserMediaError(err);
@@ -534,7 +540,7 @@ async function invite(evt) {
 // Accept an offer to video chat. We configure our local settings,
 // create our RTCPeerConnection, get and attach our local camera
 // stream, then create and send an answer to the caller.
-
+// 2-1
 async function handleVideoOfferMsg(msg) {
   targetUsername = msg.name;
 
@@ -548,7 +554,7 @@ async function handleVideoOfferMsg(msg) {
 
   // We need to set the remote description to the received SDP offer
   // so that our local WebRTC layer knows how to talk to the caller.
-
+  // 2-2
   var desc = new RTCSessionDescription(msg.sdp);
 
   // If the connection isn't stable yet, wait for it...
@@ -560,6 +566,7 @@ async function handleVideoOfferMsg(msg) {
     // until both return.
     await Promise.all([
       myPeerConnection.setLocalDescription({type: "rollback"}),
+      // 2-3
       myPeerConnection.setRemoteDescription(desc)
     ]);
     return;
@@ -572,6 +579,7 @@ async function handleVideoOfferMsg(msg) {
 
   if (!webcamStream) {
     try {
+      // 2-4
       webcamStream = await navigator.mediaDevices.getUserMedia(mediaConstraints);
     } catch(err) {
       handleGetUserMediaError(err);
@@ -583,8 +591,19 @@ async function handleVideoOfferMsg(msg) {
     // Add the camera stream to the RTCPeerConnection
 
     try {
+      // 本应该使用addStream(),但是在webrtc的官方已经废弃了addStream方法，使用addTrack()
+      /*
+      navigator.getUserMedia({video:true, audio:true}, function(stream) {
+        var pc = new RTCPeerConnection();
+        stream.getTracks().forEach(function(track) {
+          pc.addTrack(track, stream);
+        });
+      });
+      */
+      // 2-5
       webcamStream.getTracks().forEach(
-        transceiver = track => myPeerConnection.addTransceiver(track, {streams: [webcamStream]})
+        track => myPeerConnection.addTrack(track, webcamStream)
+        // transceiver = track => myPeerConnection.addTransceiver(track, {streams: [webcamStream]})
       );
     } catch(err) {
       handleGetUserMediaError(err);
@@ -592,9 +611,9 @@ async function handleVideoOfferMsg(msg) {
   }
 
   log("---> Creating and sending answer to caller");
-
+  // 2-6 2-7
   await myPeerConnection.setLocalDescription(await myPeerConnection.createAnswer());
-
+  // 2-8
   sendToServer({
     name: myUsername,
     target: targetUsername,
@@ -611,9 +630,32 @@ async function handleVideoAnswerMsg(msg) {
 
   // Configure the remote description, which is the SDP payload
   // in our "video-answer" message.
-
+  // 1-7 在2-8之后
   var desc = new RTCSessionDescription(msg.sdp);
   await myPeerConnection.setRemoteDescription(desc).catch(reportError);
+
+  
+}
+
+function showDevices(list) {
+  var sltElem = document.querySelector(".devices");
+
+  // Remove all current list members. We could do this smarter,
+  // by adding and updating users instead of rebuilding from
+  // scratch but this will do for this sample.
+
+  while (sltElem.firstChild) {
+    sltElem.removeChild(sltElem.firstChild);
+  }
+
+  // Add member names from the received list.
+
+  list.forEach(function(de) {
+    var item = document.createElement("option");
+    item.appendChild(document.createTextNode(de.label));
+    item.value = de.deviceId;
+    sltElem.appendChild(item);
+  });
 }
 
 // A new ICE candidate has been received from the other peer. Call

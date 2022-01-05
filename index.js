@@ -37,6 +37,9 @@ app.use(express.static(__dirname + '/static'))
 app.get('/', (req, res) => {
     res.sendFile(__dirname + '/index.html')
 })
+app.get('/monitor', (req, res) => {
+    res.sendFile(__dirname + '/monitor.html')
+})
 app.get('/camera', (req, res) => {
     res.sendFile(__dirname + '/camera.html')
 })

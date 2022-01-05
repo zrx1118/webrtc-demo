@@ -171,6 +171,12 @@ if (!webServer) {
 }
 app.use(express.static(__dirname + '/static'))
 app.get('/', (req, res) => {
+  res.sendFile(__dirname + '/index.html')
+})
+app.get('/monitor', (req, res) => {
+  res.sendFile(__dirname + '/monitor.html')
+})
+app.get('/from-chat', (req, res) => {
   res.sendFile(__dirname + '/from-chat.html')
 })
 
@@ -231,7 +237,7 @@ wsServer.on('request', function(request) {
   }
 
   // Accept the request and get a connection.
-console.log('request.origin', request.origin);
+  console.log('request.origin', request.origin);
   var connection = request.accept("json", request.origin);
 
   // Add the new connection to our list of connections.

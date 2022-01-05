@@ -1,0 +1,192 @@
+<template>
+    <div id="container" class="box">
+      <div id="cesiumContainer"></div>
+    </div>
+  </template>
+   
+  <script>
+  import posits from "@/assets/position.json";
+  // console.log(posits, 'posits')
+  export default {
+    name: "Home",
+    mounted() {
+      this.init();
+    },
+    methods: {
+      init() {
+        let Cesium = this.cesium;
+        let url =
+          "http://services.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer";
+        let geogle = new this.cesium.ArcGisMapServerImageryProvider({ url: url });
+        // this.cesium.Ion.defaultAccessToken =
+        //   "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJqdGkiOiIyMjQ1NTgyMC1jYjdlLTQ2YWEtOTgxMi0xYmMwZjExZWZmODYiLCJpZCI6NDA0MDMsImlhdCI6MTYwODcxNTE2N30.lV4BGaq1EiVcUVSyozQ49IOW4NGUmxrscmz80uml3SQ";
+        // console.log(this.Cesium, '士大夫')
+        var worldTerrain = Cesium.createWorldTerrain({
+          // required for water effects
+          requestWaterMask: true,
+          // required for terrain lighting
+          requestVertexNormals: true,
+        });
+        this.viewer = new Cesium.Viewer("cesiumContainer", {
+          imageryProvider: geogle,
+          baseLayerPicker: false, //图层控件
+          selectionIndicator: false,
+          geocoder: false, // 地名搜索
+          sceneModePicker: false, // 投影方式
+          navigationHelpButton: false, // 是否显示帮助信息控件
+          homeButton: false, // 是否显示Home按钮
+          timeline: true,
+          animation: false,
+          fullscreenButton: false,
+          terrainProvider: worldTerrain,
+        });
+        this.viewer._cesiumWidget._creditContainer.style.display = "none"; // 隐藏版权
+        this.addMod();
+      },
+      yidong() {
+        let viewer = this.viewer;
+        let Cesium = this.cesium;
+        const timeStepInSeconds = 300000;
+        const totalSeconds = timeStepInSeconds * (posits.length - 1);
+        const start = Cesium.JulianDate.fromIso8601("2020-03-09T23:10:00Z");
+        const stop = Cesium.JulianDate.addSeconds(
+          start,
+          totalSeconds,
+          new Cesium.JulianDate()
+        );
+        viewer.clock.startTime = start.clone();
+        viewer.clock.stopTime = stop.clone();
+        viewer.clock.currentTime = start.clone();
+        viewer.timeline.zoomTo(start, stop);
+        viewer.clock.multiplier = 50;
+        // Start playing the scene.
+        const positionProperty = new Cesium.SampledPositionProperty();
+        viewer.clock.shouldAnimate = true;
+        for (let i = 0; i < posits.length; i++) {
+          const dataPoint = posits[i];
+  
+          // Declare the time for this individual sample and store it in a new JulianDate instance.
+          const time = Cesium.JulianDate.addSeconds(
+            start,
+            i * timeStepInSeconds,
+            new Cesium.JulianDate()
+          );
+          const position = Cesium.Cartesian3.fromDegrees(
+            dataPoint.longitude,
+            dataPoint.latitude,
+            dataPoint.height
+          );
+          // Store the position along with its timestamp.
+          // Here we add the positions all upfront, but these can be added at run-time as samples are received from a server.
+          positionProperty.addSample(time, position);
+  
+          viewer.entities.add({
+            description: `Location: (${dataPoint.longitude}, ${dataPoint.latitude}, ${dataPoint.height})`,
+            position: position,
+            point: { pixelSize: 10, color: Cesium.Color.RED },
+          });
+        }
+        // var position = this.cesium.Cartesian3.fromDegrees(
+        //   112.948739,
+        //   28.230917,
+        //   5000
+        // );
+        var heading = this.cesium.Math.toRadians(210);
+        var pitch = 0;
+        var roll = 0;
+        var hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+        // var orientation = Cesium.Transforms.headingPitchRollQuaternion(
+        //   position,
+        //   hpr
+        // );
+        const airplaneEntity = viewer.entities.add({
+          availability: new Cesium.TimeIntervalCollection([
+            new Cesium.TimeInterval({ start: start, stop: stop }),
+          ]),
+          orientation: new Cesium.VelocityOrientationProperty(positionProperty),
+          model: {
+            // uri: "http://192.168.3.153:3000/Cesium_Air.glb",
+            uri: 'http://czgw.czyapi.com/static/Cesium_Air.glb',
+            minimumPixelSize: 128,
+            maximumScale: 20000,
+          },
+          position: positionProperty,
+          point: { pixelSize: 30, color: Cesium.Color.GREEN },
+          path: new Cesium.PathGraphics({ width: 3 }),
+        });
+        // Make the camera track this moving entity.
+        viewer.trackedEntity = airplaneEntity;
+      },
+      addMod() {
+        // let Cesium = this.cesium;
+        // var position = this.cesium.Cartesian3.fromDegrees(
+        //   112.939025,
+        //   28.218525,
+        //   150000
+        // );
+        // var heading = this.cesium.Math.toRadians(135);
+        // var pitch = 0;
+        // var roll = 0;
+        // var hpr = new Cesium.HeadingPitchRoll(heading, pitch, roll);
+        // var orientation = Cesium.Transforms.headingPitchRollQuaternion(
+        //   position,
+        //   hpr
+        // );
+  
+        // var modelMatrix = Cesium.Transforms.eastNorthUpToFixedFrame(
+        //   Cesium.Cartesian3.fromDegrees(112.939025, 28.218525, 150000)
+        // );
+        // // var model = this.viewer.scene.primitives.add(
+        // //   Cesium.Model.fromGltf({
+        // //     id: "test_cube1",
+        // //     url: "Cesium_Air.glb", //如果为bgltf则为.bgltf
+        // //     modelMatrix: modelMatrix,
+        // //     scale: 1.0, //放大倍数
+        // //   })
+        // // );
+        // // console.log(model, 'modelmodel')
+        // // this.viewer.zoomTo(model)
+        // var entity = this.viewer.entities.add({
+        //   name: "http://localhost:3000/Cesium_Air.glb",
+        //   position: position,
+        //   orientation: orientation,
+        //   model: {
+        //     uri: "http://192.168.3.153:3000/Cesium_Air.glb",
+        //     minimumPixelSize: 128,
+        //     maximumScale: 20000,
+        //   },
+        // });
+        // this.viewer.trackedEntity = entity;
+        // this.loadModel();
+        this.yidong();
+      },
+      async loadModel() {
+        // let Cesium = this.cesium;
+        // var position = this.cesium.Cartesian3.fromDegrees(
+        //   112.939025,
+        //   28.218525,
+        //   150000
+        // );
+        // // Load the glTF model from Cesium ion.
+        // const airplaneUri = await Cesium.IonResource.fromAssetId(235968);
+        // console.log(airplaneUri, "airplaneUri");
+        // viewer.trackedEntity = airplaneEntity;
+      },
+    },
+  };
+  </script>
+   
+  <style scoped>
+  html,
+  body,
+  #cesiumContainer {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  .box {
+    height: 100%;
+  }
+  </style>

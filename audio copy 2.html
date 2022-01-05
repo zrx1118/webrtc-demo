@@ -61,7 +61,7 @@
                 this._recorder.stop();
             },
             play() {
-                this.$refs.player.src = URL.createObjectURL(this.currentData);
+                this.$refs.player.src = window.URL.createObjectURL(this.currentData);
             }
         }
     })

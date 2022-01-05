@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+    // 1、axios的底层实现
+    // 2、promise的重写
+        Promise.all(); // 所有结果成功返回，才成功，否则失败
+        Promise.any(); // 只要一个成功，就成功，否则失败
+        Promise.race(); // 返回最近出结果的promise，无论成功与否
+        Promise.resolve(); // 返回成功
+        Promise.reject(); // 返回失败
+        Promise.then(); // 链式调用
+        Promise.catch(); // 被reject时，调用
+        Promise.finally(); // 无论成功与否，都会在最后调用
+        Promise.Allsettled(); // 无论成功与否，全部都有返回
+    
+    // 3、apply和call
+    
+    // 4、深拷贝
+    let canforArr = ['[object Array]', '[object Map]', '[object Set]', '[object Object]'],
+        notforArr = ['[object RegExp]', '[object Function]', '[object Symbol]']
+    function deepClone(target, map = new Map()) {
+        let type = checkType(target)
+
+        if (!canforArr.concat(notforArr).includes(type)) return target
+
+        let temp = checkTemp(target)
+        
+        if (map.get(target)) {
+            return map.get(target)
+        }
+
+        map.set(target, temp)
+
+        if (type === '[object RegExp]') {
+
+        }
+
+        if (type === '[object Map]') {
+            target.forEach((value, key) => {
+                temp.set(key, deepClone(value, map))
+            })
+        }
+
+        if (type === '[object Set]') {
+            target.forEach((value, key) => {
+                temp.add(deepClone(value, map))
+            })
+        }
+
+        for (var key in target) {
+            temp[key] = deepClone(target[key], map)
+        }
+
+        return temp
+    }
+
+    function cloneReg(target) {
+        return 
+    }
+
+    function checkTemp() {
+        let c = target.constructor;
+        return new c()
+    }
+
+    function checkType(target) {
+        return Object.prototype.toString.call(target)
+    }
+
+
+        
+    // 齐刘海
+    
+    
+    // 4、ES6-ES12的新特性：
+    //     let/const、解构赋值、模版字符串、默认参数、剩余参数、对象属性同名缩写、Object(keys, values, entries, fromEntries)、剪头函数、class, Promise( all，race，finally, any, allSettled接收一个Promise数组，数组中如有非Promise项，则此项当做成功
+    //     把每一个Promise的结果，集合成数组 )、async/await、Array(forEach，some，map, filter，every，reduce，.flat, .flatMap, )、for of/for in, 求幂运算符、 Set/Map, BigInt、String.trimStart/String.trimEnd, for await of、 ?.，中文名为可选链
+    //     比如我们需要一个变量，是数组且有长度，才做某些操作, ??这，只有undefined和null才算假值, 
+
+</script>
+</html>
+
+
