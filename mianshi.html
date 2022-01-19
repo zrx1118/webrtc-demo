@@ -31,6 +31,10 @@
 
         if (!canforArr.concat(notforArr).includes(type)) return target
 
+        if (type === '[object Symbol]') return cloneSymbol(target)
+        if (type === '[object Function]') return cloneFunction(target)
+        if (type === '[object RegExp]') return cloneReg(target)
+
         let temp = checkTemp(target)
         
         if (map.get(target)) {
@@ -62,8 +66,17 @@
         return temp
     }
 
-    function cloneReg(target) {
+    function cloneFunction(target) {
         return 
+    }
+
+    function cloneReg(target) {
+        const reFlags = /\w*$/
+        return 
+    }
+
+    function cloneSymbol(target) {
+        return Object(Symbol.prototype.valueOf.call(target))
     }
 
     function checkTemp() {
