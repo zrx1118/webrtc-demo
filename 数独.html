@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+/**
+ * 有效的数独
+ * @param {character[][]} board
+ * @return {boolean}
+ */
+var isValidSudoku = function(board) {
+    const rows = new Array(9).fill(0).map(() => new Set())
+    const columns = new Array(9).fill(0).map(() => new Set())
+    const subboxes = new Array(3).fill(0).map(() => new Array(3).fill(0).map(() => new Set()))
+
+    for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+            let bij = board[i][j];
+            if (bij != ".") {
+                if (rows[i].has(bij) || columns[j].has(bij) || subboxes[Math.floor(i / 3)][Math.floor(j / 3)].has(bij)) {
+                    return false
+                } else {
+                    rows[i].add(bij);
+                    columns[j].add(bij);
+                    subboxes[Math.floor(i / 3)][Math.floor(j / 3)].add(bij); 
+                }
+            }
+        }
+    }
+    return true
+}
+
+
+let b1 = board = 
+[["5","3",".",".","7",".",".",".","."]
+,["6",".",".","1","9","5",".",".","."]
+,[".","9","8",".",".",".",".","6","."]
+,["8",".",".",".","6",".",".",".","3"]
+,["4",".",".","8",".","3",".",".","1"]
+,["7",".",".",".","2",".",".",".","6"]
+,[".","6",".",".",".",".","2","8","."]
+,[".",".",".","4","1","9",".",".","5"]
+,[".",".",".",".","8",".",".","7","9"]];
+let b2 = board = 
+[["8","3",".",".","7",".",".",".","."]
+,["6",".",".","1","9","5",".",".","."]
+,[".","9","8",".",".",".",".","6","."]
+,["8",".",".",".","6",".",".",".","3"]
+,["4",".",".","8",".","3",".",".","1"]
+,["7",".",".",".","2",".",".",".","6"]
+,[".","6",".",".",".",".","2","8","."]
+,[".",".",".","4","1","9",".",".","5"]
+,[".",".",".",".","8",".",".","7","9"]];
+console.log(isValidSudoku(b1))
+console.log(isValidSudoku(b2))
+
+/**
+ * 解数独
+ * @param {character[][]} board
+ * @return {void} Do not return anything, modify board in-place instead.
+ */
+var solveSudoku = function(board) {
+    const x = new Array(9).fill(0).map(() => new Array(9).fill(0).map((_, idx) => idx + 1));
+    const y = new Array(9).fill(0).map(() => new Array(9).fill(0).map((_, idx) => idx + 1));
+    const z = new Array(3).fill(0).map(() => new Array(3).fill(0).map(() => new Array(9).fill(0).map((_, idx) => idx + 1)));
+    const allNodes = new Array(9).fill(0).map(() => new Array(9).fill(0));
+    const notNum = new Array(9).fill(0);
+    
+    for (let i = 0; i < 9; i++) {
+        for (let j = 0; j < 9; j++) {
+            let bij = board[i][j];
+            if (bij != ".") {
+                bij = Number(bij)
+                allNodes[i][j] = bij;
+                let xi = x[i].findIndex(xx => xx === bij)
+                let yi = y[j].findIndex(xx => xx === bij)
+                let zi = z[Math.floor(i / 3)][Math.floor(j/3)].findIndex(xx => xx === bij)
+                x[i].splice(xi, 1);
+                y[j].splice(yi, 1);
+                z[Math.floor(i / 3)][Math.floor(j/3)].splice(zi, 1);
+            } else {
+                if (notNum[i] === 0) {
+                    notNum[i] = []
+                }
+                notNum[i].push(j)
+            }
+        }
+        
+    }
+    console.log(x, y, z, notNum);
+    for (let i = 0; i < notNum.length; i++) {
+        for (let j = 0; j < notNum[i].length; j++) {
+            let s = notNum[i][j];
+            let xx = x[i], yy = y[s], zz = z[Math.floor(i / 3)][Math.floor(s/3)];
+        }
+    }
+};
+
+solveSudoku(b1)
+
+</script>
+</html>

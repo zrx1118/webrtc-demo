@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+    function print(v){
+        if (typeof v == "number") {
+            var w = 30;
+            if(n>30) w = (n-30) + 40;
+            var s = '<span style="padding:4px 2px;display:inline-block;text-align:center;width:' + w + 'px;">'+v+'</span>';
+            document.write(s);
+        }else{
+            document.write(v);
+        }
+    }
+    var n = prompt("请输入幂数：",9);
+    n = n - 0;
+    var t1 = new Date();
+    var a1 = [1,1];
+    var a2 = [1,1];
+    print('<div style=text-align:center;">');
+    for (var i = 0;i <=n;i++){
+        for (var j = 1; j < i + 2; j++) {
+            print(c(i,j));
+        }
+        print("<br />");
+    }
+    print("</div>");
+    var t2 = new Date();
+    print("<p style='text-align:center;'>耗时为（毫秒）："+(t2-t1)+"</p>");
+    function c(x,y){
+        if ((y == 1) || (y == x + 1)) return 1;
+        return c(x-1,y-1) + c(x-1,y);
+    }
+</script>
+</html>

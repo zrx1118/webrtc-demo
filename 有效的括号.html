@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+
+<script>
+/**
+ * @param {string} s
+ * @return {boolean}
+ */
+var isValid = function(s) {
+    let arr = [];
+
+    s.split("").forEach(a => {
+        let val;
+        switch(a) {
+            case "(":
+                val = 1;break;
+            case ")":
+                val = -1;break;
+            case "[":
+                val = 2;break;
+            case "]":
+                val = -2;break;
+            case "{":
+                val = 3;break;
+            case "}":
+                val = -3;break;
+        }
+        if (val < 0 && arr.length) {
+            if ((val + arr[arr.length - 1]) === 0) {
+                arr.pop()
+            } else {
+                arr.push(val)
+            }
+        } else {
+            arr.push(val)
+        }
+    })
+console.log(arr);
+    return !arr.length
+};
+
+let a = "({{{{}}}))"
+let b = "(])"
+let c = "()[]{}"
+let d = "(]"
+let e = "([)]"
+isValid(a)
+isValid(b)
+isValid(c)
+isValid(d)
+isValid(e)
+</script>
+</html>

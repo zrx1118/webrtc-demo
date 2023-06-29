@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+function getIPKey(infoObj) {
+    var that = this;
+    if (window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection) {
+        var Rtc = window.RTCPeerConnection || window.webkitRTCPeerConnection || window.mozRTCPeerConnection;
+        try {
+            var nrtc = new Rtc({
+                iceServers: []
+            });
+            nrtc.createDataChannel('', {
+                reliable: !1
+            });
+        } catch (e) {
+            infoObj['ip'] = '0.0.0.0';
+            return infoObj;
+        }
+
+        var e = false;
+        nrtc.onicecandidate = function(Rtc) {
+            var reg = /([0-9]{1,3}(\.[0-9]{1,3}){3})/,
+                infoArr = [];
+            'complete' != Rtc.target.iceGatheringState || e || (e = !0,
+                Rtc.target.localDescription.sdp.split('\n').forEach(function(a) {
+                    if ((a = reg.exec(a)) && '127.0.0.1' != a[1] && '0.0.0.0' != a[1] && -1 === infoArr.indexOf(a[1])) {
+                        infoArr.push(a[1]);
+                    }
+                }),
+                (function() {
+                    window.currentIp = 0 < infoArr.length ? infoArr.sort()[0] : '0.0.0.0';
+                    infoObj.ip = window.currentIp;
+                })());
+        };
+
+        nrtc.createOffer(function(a) {
+            nrtc.setLocalDescription(a, F(), F());
+        }, F());
+
+        infoObj.ip = window.currentIp || '0.0.0.0';
+
+        return infoObj;
+    } else {
+        infoObj['ip'] = '0.0.0.0';
+
+        return infoObj;
+    }
+
+    function F() {}
+}
+let infoObj = {ip: ""}
+getIPKey(infoObj)
+</script>
+</html>

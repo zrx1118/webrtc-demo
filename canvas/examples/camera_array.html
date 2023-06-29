@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="main.css">
+    <title>Document</title>
+</head>
+<body>
+    <script async src="https://unpkg.com/es-module-shims@1.6.3/dist/es-module-shims.js"></script>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "../build/three.module.js",
+                "three/addons/": "./jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        let camera, scene, renderer;
+        let mesh;
+        const AMOUNT = 6;
+
+        init();
+        animate();
+
+        function init() {
+            const { ASPECT_RATIO, WIDTH, HEIGHT } = getAspectRatio();
+
+            const cameras = [];
+
+            for(let y = 0; y < AMOUNT; y++) {
+                for(let x = 0; x < AMOUNT; x++) {
+                    const subcamera =  new THREE.PerspectiveCamera(90, ASPECT_RATIO, 0.1, 10);
+                    subcamera.viewport = new THREE.Vector4(Math.floor(x * WIDTH), Math.floor(y * HEIGHT), Math.ceil(WIDTH), Math.ceil(HEIGHT));
+                    subcamera.position.x = (x / AMOUNT) - 0.5;
+                    subcamera.position.y = 0.5 - (y / AMOUNT);
+                    subcamera.position.z = 1.5;
+                    subcamera.position.multiplyScalar(1.5); // multiplyScalar ( s : Float ) : this 将该向量与所传入的标量s进行相乘。
+                    subcamera.lookAt(0,0,0);
+                    subcamera.updateMatrixWorld(); // 更新物体及其后代的全局变换。
+                    cameras.push(subcamera);
+                }
+            }
+
+            camera = new THREE.ArrayCamera(cameras);
+            camera.position.z = 3;
+
+            scene = new THREE.Scene();
+            /**
+             * AmbientLight( color : Color, intensity : Float ) 环境光会均匀的照亮场景中的所有物体。环境光不能用来投射阴影，因为它没有方向。
+             * color -（可选）一个表示颜色的 Color 的实例、字符串或数字，默认为一个白色（0xffffff）的 Color 对象。
+             * intensity -（可选）光照的强度。默认值为 1。
+            */
+            scene.add(new THREE.AmbientLight(0x222244));
+            /**
+             * DirectionalLight( color : Color, intensity : Float ) 平行光（DirectionalLight）
+             * color -（可选）一个表示颜色的 Color 的实例、字符串或数字，默认为一个白色（0xffffff）的 Color 对象。
+             * intensity -（可选）光照的强度。默认值为 1。
+            */
+            const light = new THREE.DirectionalLight();
+            light.position.set(0.5, 0.5, 1);
+            // castShadow : Boolean 对象是否被渲染到阴影贴图中。默认值为false。
+            light.castShadow = true;
+            light.shadow.camera.zoom = 4;
+            scene.add(light);
+
+            const geometryBackground = new THREE.PlaneGeometry(100, 100, 3, 4);
+            const materialBackground = new THREE.MeshPhongMaterial({ color: 0x000066 });
+
+            const background = new THREE.Mesh(geometryBackground, materialBackground);
+            background.receiveShadow = true;
+            background.position.set(0, 0, -1);
+            scene.add(background);
+
+            /**
+             * 圆柱缓冲几何体（CylinderGeometry）
+             * CylinderGeometry(radiusTop : Float, radiusBottom : Float, height : Float, radialSegments : Integer, heightSegments : Integer, openEnded : Boolean, thetaStart : Float, thetaLength : Float)
+            radiusTop — 圆柱的顶部半径，默认值是1。
+            radiusBottom — 圆柱的底部半径，默认值是1。
+            height — 圆柱的高度，默认值是1。
+            radialSegments — 圆柱侧面周围的分段数，默认为32。
+            heightSegments — 圆柱侧面沿着其高度的分段数，默认值为1。
+            openEnded — 一个Boolean值，指明该圆锥的底面是开放的还是封顶的。默认值为false，即其底面默认是封顶的。
+            thetaStart — 第一个分段的起始角度，默认为0。（three o'clock position）
+            thetaLength — 圆柱底面圆扇区的中心角，通常被称为“θ”（西塔）。默认值是2*Pi，这使其成为一个完整的圆柱。
+            */
+            const geometryCylinder = new THREE.CylinderGeometry(0.5, 0.5, 1, 32);
+            const materialCylinder = new THREE.MeshPhongMaterial({ color: 0xdfaad3 });
+
+            mesh = new THREE.Mesh(geometryCylinder, materialCylinder);
+            mesh.castShadow = false; // 对象是否被渲染到阴影贴图中。默认值为false。
+            mesh.receiveShadow = true; // 材质是否接收阴影。默认值为false。
+            scene.add(mesh);
+
+            renderer = new THREE.WebGLRenderer();
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            document.body.appendChild(renderer.domElement);
+
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function getAspectRatio() {
+            return {
+                ASPECT_RATIO: window.innerWidth / window.innerHeight,
+                WIDTH: ( window.innerWidth / AMOUNT ) * window.devicePixelRatio,
+                HEIGHT: ( window.innerHeight / AMOUNT ) * window.devicePixelRatio
+            }
+        }
+        function onWindowResize() {
+            const { ASPECT_RATIO, WIDTH, HEIGHT } = getAspectRatio();
+
+            camera.aspect = ASPECT_RATIO;
+            // updateProjectionMatrix () : undefined 更新摄像机投影矩阵。在任何参数被改变以后必须被调用。
+            camera.updateProjectionMatrix();
+
+            for (let y = 0; y < AMOUNT; y++) {
+                for(let x = 0; x < AMOUNT; x++) {
+                    const subcamera = camera.cameras[AMOUNT * y + x];
+
+                    subcamera.viewport.set(
+                        Math.floor(x * WIDTH),
+                        Math.floor(y * HEIGHT),
+                        Math.ceil(WIDTH),
+                        Math.ceil(HEIGHT)
+                    );
+
+                    subcamera.aspect = ASPECT_RATIO;
+                    subcamera.updateProjectionMatrix();
+                }
+            }
+
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        function animate() {
+            mesh.rotation.x += 0.005;
+            mesh.rotation.z -= 0.01;
+            renderer.render(scene, camera);
+
+            requestAnimationFrame(animate);
+        }
+    </script>
+</body>
+</html>

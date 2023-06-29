@@ -1,0 +1,47 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>在某个元素上阻止鼠标右键默认事件DEMO</title>
+<style>
+body{font-size:12px; line-height:24px; font-family:Arial, Helvetica, sans-serif;}
+#activeArea{width:300px;height:200px; background:#06C; color:#fff;}
+#cstCM{ width:120px; background:#eee; border:1px solid #ccc; position:absolute; }
+#cstCM ul{margin:0; padding:0;}
+#cstCM ul li{ list-style:none;padding:0 10px; cursor:default;}
+#cstCM ul li:hover{ background:#009; color:#fff;}
+.splitTop{ border-bottom:1px solid #ccc;}
+.splitBottom{border-top:1px solid #fff;}
+</style>
+<script>
+function customContextMenu(event){
+	event.preventDefault ? event.preventDefault():(event.returnValue = false);
+	var cstCM = document.getElementById('cstCM');
+	cstCM.style.left = event.clientX + 'px';
+	cstCM.style.top = event.clientY + 'px';
+	cstCM.style.display = 'block';
+	document.onmousedown = clearCustomCM;
+}
+function clearCustomCM(){
+	document.getElementById('cstCM').style.display = 'none';
+	document.onmousedown = null;
+}
+</script>
+</head>
+
+<body>
+<div id="cstCM" style="display:none;">
+	<ul>
+		<li>View</li>
+		<li>Sort By</li>
+		<li class="splitTop">Refresh</li>
+		<li class="splitBottom">Paste</li>
+		<li class="splitTop">Paste Shortcut</li>
+		<li class="splitBottom">Property</li>
+	</ul>
+</div>
+<div id="activeArea" oncontextmenu = "customContextMenu(event)">
+	Custom Context Menu Area
+</div>
+</body>
+</html>

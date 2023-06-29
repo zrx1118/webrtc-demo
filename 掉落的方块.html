@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+</head>
+<body>
+    
+</body>
+<script>
+/**
+ * @param {number[][]} positions
+ * @return {number[]}
+ */
+var fallingSquares = function(positions, s) {
+    let all = [], max = 0, arr = [];
+    positions.forEach(pos => {
+        let obj = {
+            x: pos[0],
+            y: pos[0] + pos[1],
+            z: pos[1]
+        }
+
+        if (all.length) {
+            // let has = all.filter(o => ((obj.x >= o.x && obj.x < o.y) || (obj.y > o.x && obj.y <= o.y) || (obj.x < o.x && obj.y > o.y)));
+            // let len = has.length
+            // if(len) {
+            //     if (len > 1) {
+            //         let m = 0;
+            //         for (let i = 0; i < len; i++) {
+            //             m = Math.max(m, has[i].z)
+            //         }
+            //         obj.z += m
+            //     } else {
+            //         obj.z += has[0].z
+            //     }
+            // }
+
+            let m = 0;
+            all.forEach(o => {
+                if ((obj.x >= o.x && obj.x < o.y) || (obj.y > o.x && obj.y <= o.y) || (obj.x < o.x && obj.y > o.y)) {
+                    m = Math.max(m, o.z)
+                }
+            });
+            obj.z += m
+        }
+        max = Math.max(max, obj.z)
+        all.push(obj)
+        arr.push(max)
+    })
+    console.log(arr, s);
+    return arr
+};
+
+let a = [[1,2],[2,3],[6,1]]
+let b = [[9,7],[1,9],[3,1]]
+let c = [[100,100],[200, 100]]
+let d = [[6,1],[9,2],[2,4]];
+let e = [[4,6],[4,2],[4,3]];
+let f = [[9,1],[6,5],[6,7]]
+let g = [[50,47],[95,48],[88,77],[84,3],[53,87],[98,79],[88,28],[13,22],[53,73],[85,55]]
+let h = [[9,6],[2,2],[2,6]];
+fallingSquares(a)
+fallingSquares(b)
+fallingSquares(c)
+fallingSquares(d)
+fallingSquares(e)
+fallingSquares(f)
+fallingSquares(g, [47,95,172,172,259,338,366,366,439,494])
+fallingSquares(h, [6,6,8])
+</script>
+</html>
